@@ -43,9 +43,7 @@ To address this issue, currently, the admin needs to disable all pod-to-Internet
 
 ## The consistency problem in IPCache
 
-**There was no actual description of the problem.**
-
-Both Cilium's identity-based policy enforcement and encryption rely on an [eBPF map](https://docs.kernel.org/bpf/maps.html) called *IPCache* to reason about the source and destination identity of network packets. If the IPCache indicates that a destination IP is associated with a Kubernetes pod, the packet is re-routed through the WireGuard interface. This interface then takes care of encapsulating and encrypting the packet and sending it to the pod's node. So far so good. However, as it turns out, the IPCache is only *eventually* updated with new endpoints. If a newly created endpoint is not yet in the IPCache, network traffic to it is not encrypted. This is the core of the problem and our goal is to fix this.
+Both Cilium's identity-based policy enforcement and encryption rely on an [eBPF map](https://docs.kernel.org/bpf/maps.html) called *IPCache* to reason about the source and destination identity of network packets. If a packet originates from a pod inside the pod network and the IPCache indicates that the destination is also a pod, then the packet is re-routed through the WireGuard interface. This interface then takes care of encapsulating and encrypting the packet and sending it to the destination pod's node. So far so good. However, as it turns out, the IPCache is only *eventually* updated with new endpoints. If a newly created endpoint is not yet in the IPCache, network traffic to it is not encrypted. This is the core of the problem and our goal is to fix this.
 
 ### Triggering the issue
 
@@ -61,7 +59,9 @@ By disabling the Cilium-operator in step 3, we are able to reliably trigger the 
 
 ### Solution
 
-Our approach is simple: we add a filter as an eBPF program to Cilium's packet routing stack called the ["datapath"](https://docs.cilium.io/en/stable/network/ebpf/intro/) that drops unencrypted network packets between pods. This raises two questions: 
+Our approach is simple. We add a filter as an eBPF program to Cilium's packet routing stack called the ["datapath"](https://docs.cilium.io/en/stable/network/ebpf/intro/) that drops unencrypted network packets between pods. In more detail: For encapsulation/VXLAN, our filter is part of the `bpf_overlay` program attached to the VXLAN network interface. For direct routing, our filter is part of the `bpf_host` program attached to the host network interface, i.e., eth0.
+
+Two core questions remain: 
 
 1. How do we identify pod-to-pod traffic?
 2. How do we know if traffic is encrypted or not?
@@ -70,7 +70,7 @@ Our approach for (1) is to identify pods based on their IPv4 addresses. If both 
 
 For (2), we identify if the packet was routed through the WireGuard network interface. If the source IPv4 address matches the interface's address, the packet was passed down by WireGuard and encapsulated along the way. 
 
-This approach reliably solves our problem. However, when nodes and pods share a subnet, our described filter also drops traffic to nodes, which breaks functionality. This is the case for VXLAN on AWS and Azure, since the nodes have multiple IP addresses from the PodCIDR assinged. Those are used for internal health checks and to route traffic from one node to the pod of another node. This problem does not occur when native routing on GCP is used.
+This approach reliably solves our problem. However, when nodes and pods share a subnet, our described filter also drops traffic to nodes, which breaks functionality. This is the case for VXLAN on AWS and Azure, since the nodes have multiple IP addresses from the PodCIDR assigned. Those are used for internal health checks and to route traffic from one node to the pod of another node. This problem does not occur when native routing on GCP is used.
 
 To address this, for VXLAN, we extend our filter to identify nodes via the IPCache map. If, according to the map, the destination is a node, we don't drop the traffic. This extension has one caveat: If a pod is assigned the IP address of a recently shut down node and this change isn't reflected in IPCache yet, traffic to that pod will still not be encrypted.
 
