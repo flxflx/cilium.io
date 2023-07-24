@@ -66,7 +66,7 @@ Two core questions remain:
 1. How do we identify pod-to-pod traffic?
 2. How do we know if traffic is encrypted or not?
 
-Our approach for (1) is to identify pods based on their IPv4 addresses. If both destination and source address are within the pod subnet (as specified by `PodCIDR`), we're clearly dealing with pod-to-pod traffic.
+Our approach for (1) is to identify pods based on their IPv4 addresses. If both destination and source address are within the pod subnet (as specified by `PodCIDR`) and neither the source nor the destination IP has a node identity associated with it, we're clearly dealing with pod-to-pod traffic.
 
 For (2), we identify if the packet was routed through the WireGuard network interface. If the source IPv4 address matches the interface's address, the packet was passed down by WireGuard and encapsulated along the way. 
 
