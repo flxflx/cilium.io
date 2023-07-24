@@ -64,7 +64,7 @@ Our approach is simple. We add a filter as an eBPF program to Cilium's packet ro
 1. How do we identify pod-to-pod traffic?
 2. How do we know if traffic is encrypted or not?
 
-Our approach for (1) is to identify pods based on their IPv4 addresses. If both destination and source address are within the pod subnet (as specified by `PodCIDR`), we're clearly dealing with pod-to-pod traffic. For (2), we need to consider VXLAN and direct routing separately. All identified pod-to-pod traffic that is not (yet) covered by IPCache ends up unencrypted at the VXLAN interface. Analogously, for direct routing, all such traffic ends up unencrypted at eth0.
+Our approach for (1) is to identify pods based on their IPv4 addresses. If both destination and source address are within the pod subnet (as specified by `PodCIDR`) and neither has a node identity associated with it, we're clearly dealing with pod-to-pod traffic. For (2), we need to consider VXLAN and direct routing separately. All identified pod-to-pod traffic that is not (yet) covered by IPCache ends up unencrypted at the VXLAN interface. Analogously, for direct routing, all such traffic ends up unencrypted at eth0.
 
 Correspondingly, for VXLAN, our filter is part of the `bpf_overlay` program, which is attached to the VXLAN network interface. For direct routing, our filter is part of the `bpf_host` program, which is attached to the host network interface, i.e., eth0.
 
