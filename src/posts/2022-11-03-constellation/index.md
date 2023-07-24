@@ -61,7 +61,7 @@ By disabling the Cilium-operator in step 3, we are able to reliably trigger the 
 
 ### Solution
 
-Our approach is simple: we add a filter (**FS: this is still a bit vague. Where do we add this filter? What kind of filter is it?**) that drops unencrypted network packets between pods. This raises two questions: 
+Our approach is simple: we add a filter as an eBPF program to Cilium's packet routing stack called the ["datapath"](https://docs.cilium.io/en/stable/network/ebpf/intro/) that drops unencrypted network packets between pods. This raises two questions: 
 
 1. How do we identify pod-to-pod traffic?
 2. How do we know if traffic is encrypted or not?
