@@ -64,13 +64,15 @@ Our approach is simple. We add a filter as an eBPF program to Cilium's packet ro
 1. How do we identify pod-to-pod traffic?
 2. How do we know if traffic is encrypted or not?
 
-Our approach for (1) is to identify pods based on their IPv4 addresses. If both destination and source address are within the pod subnet (as specified by `PodCIDR`) and neither has a node identity associated with it, we're clearly dealing with pod-to-pod traffic. For (2), we need to consider VXLAN and direct routing separately. All identified pod-to-pod traffic that is not (yet) covered by IPCache ends up unencrypted at the VXLAN interface. Analogously, for direct routing, all such traffic ends up unencrypted at eth0.
+Our approach for (1) is to identify pods based on their IPv4 addresses. If both destination and source address are within the pod subnet (as specified by `PodCIDR`), we're dealing with pod-to-pod traffic. At least in most cases; more on that later.
+
+For (2), we need to consider VXLAN and direct routing separately. All identified pod-to-pod traffic that is not (yet) covered by IPCache ends up unencrypted at the VXLAN interface. Analogously, for direct routing, all such traffic ends up unencrypted at eth0.
 
 Correspondingly, for VXLAN, our filter is part of the `bpf_overlay` program, which is attached to the VXLAN network interface. For direct routing, our filter is part of the `bpf_host` program, which is attached to the host network interface, i.e., eth0.
 
-This approach reliably solves our problem. However, when nodes and pods share a subnet, our described filter also drops traffic to nodes, which breaks functionality. This is the case for VXLAN on AWS and Azure, since the nodes have multiple IP addresses from the PodCIDR assigned. Those are used for internal health checks and to route traffic from one node to the pod of another node. This problem does not occur when native routing on GCP is used.
+Together, this reliably solves our problem. However, in cases where nodes and pods share a subnet, our approach from (1) also drops traffic to nodes, which is unintended and breaks functionality. This can happen for VXLAN on AWS and Azure, since the nodes have multiple IP addresses from the PodCIDR assigned. Those are used for internal health checks and to route traffic from one node to the pod of another node. This problem does not occur for native routing on GCP.
 
-To address this, for VXLAN, we extend our filter to identify nodes via the IPCache map. If, according to the map, the destination is a node, we don't drop the traffic. This extension has one caveat: If a pod is assigned the IP address of a recently shut down node and this change isn't reflected in IPCache yet, traffic to that pod will still not be encrypted.
+To address this, for VXLAN, we extend our filter to identify nodes via the IPCache map. If, according to the map, the destination is a node, we don't drop the traffic. This extension has one caveat: If a pod is assigned the IP address of a recently shut down node and this change isn't reflected in IPCache yet, traffic to that pod will temporarily still not be encrypted.
 
 ### Implementation
 
