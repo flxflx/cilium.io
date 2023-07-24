@@ -133,7 +133,7 @@ The full implementation was [merged into Cilium](https://github.com/cilium/ciliu
 
 ### What's next
 
-With the [v1.14 release]([https://github.com/cilium/cilium/milestone/37](https://github.com/cilium/cilium/milestone/42)) Cilium will also introduce [node-to-node](https://github.com/cilium/cilium/pull/19401) encryption. For Constellation, our plan is to switch from pod-to-pod encryption + strict mode to node-to-node encryption in the coming months. 
+With the [v1.14 release]([https://github.com/cilium/cilium/milestone/37](https://github.com/cilium/cilium/milestone/42)) Cilium will also introduce [node-to-node](https://github.com/cilium/cilium/pull/19401) encryption. For Constellation, our plan is to switch from pod-to-pod encryption + strict mode to node-to-node encryption + strict mode in the coming months. The same benefits of our filter apply to node-to-node encryption. Dropping unencrypted packets between nodes.  However, it removes the need to explicitly identify pod-to-pod traffic.
 
 **FS: what's the reason for strict mode to exist after node-to-node is available?**
 
