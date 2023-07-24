@@ -68,7 +68,7 @@ Our approach is simple: we add a filter as an eBPF program to Cilium's packet ro
 
 Our approach for (1) is to identify pods based on their IPv4 addresses. If both destination and source address are within the pod subnet (as specified by `PodCIDR`), we're clearly dealing with pod-to-pod traffic.
 
-For (2), we ... (**FS: please help me out here.**)
+For (2), we identify if the packet was routed through the WireGuard network interface. If the source IPv4 address matches the interface's address, the packet was passed down by WireGuard and encapsulated along the way. 
 
 This approach reliably solves our problem. However, when nodes and pods share a subnet, our described filter also drops traffic to nodes, which breaks functionality. This is for example the case for VXLAN on AWS and Azure, but not for native routing on GCP.
 
