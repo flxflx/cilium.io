@@ -45,7 +45,7 @@ To address this issue, currently, the admin needs to disable all pod-to-Internet
 
 **There was no actual description of the problem.**
 
-Both Cilium's identity-based policy enforcement and encryption rely on an [eBPF map](https://docs.kernel.org/bpf/maps.html) called *IPCache* to reason about the source and destination identity of network packets. If the IPCache indicates that a destination IP is associated with a Kubernetes pod, the packet is re-routed through the WireGuard interface. This interface then takes care of encapsulating and encrypting the packet and sending it to the pod's Node. So far so good. However, as it turns out, the IPCache is only *eventually* updated with new endpoints. If a newly created endpoint is not yet in the IPCache, network traffic to it is not encrypted. This is the core of the problem and our goal is to fix this.
+Both Cilium's identity-based policy enforcement and encryption rely on an [eBPF map](https://docs.kernel.org/bpf/maps.html) called *IPCache* to reason about the source and destination identity of network packets. If the IPCache indicates that a destination IP is associated with a Kubernetes pod, the packet is re-routed through the WireGuard interface. This interface then takes care of encapsulating and encrypting the packet and sending it to the pod's node. So far so good. However, as it turns out, the IPCache is only *eventually* updated with new endpoints. If a newly created endpoint is not yet in the IPCache, network traffic to it is not encrypted. This is the core of the problem and our goal is to fix this.
 
 ### Triggering the issue
 
