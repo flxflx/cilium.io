@@ -70,7 +70,7 @@ Our approach for (1) is to identify pods based on their IPv4 addresses. If both 
 
 For (2), we identify if the packet was routed through the WireGuard network interface. If the source IPv4 address matches the interface's address, the packet was passed down by WireGuard and encapsulated along the way. 
 
-This approach reliably solves our problem. However, when nodes and pods share a subnet, our described filter also drops traffic to nodes, which breaks functionality. This is for example the case for VXLAN on AWS and Azure, but not for native routing on GCP.
+This approach reliably solves our problem. However, when nodes and pods share a subnet, our described filter also drops traffic to nodes, which breaks functionality. This is the case for VXLAN on AWS and Azure, since the nodes have multiple IP addresses from the PodCIDR assinged. Those are used for internal health checks and to route traffic from one node to the pod of another node. This problem does not occur when native routing on GCP is used.
 
 To address this, for VXLAN, we extend our filter to identify nodes via the IPCache map. If, according to the map, the destination is a node, we don't drop the traffic. This extension has one caveat: If a pod is assigned the IP address of a recently shut down node and this change isn't reflected in IPCache yet, traffic to that pod will still not be encrypted.
 
